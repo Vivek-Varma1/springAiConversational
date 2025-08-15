@@ -11,6 +11,7 @@ import org.springframework.web.multipart.MultipartFile;
 import reactor.core.publisher.Flux;
 
 import javax.validation.constraints.Max;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -41,13 +42,35 @@ public class ChatController {
         return contextService.fetchAllContextIds();
     }
 
-    @GetMapping(value = "/chat", params = "contextId")
-    public Map<String,String> chat(@RequestParam(value = "contextId",defaultValue = "") String contextId,
-                                   @RequestParam(value = "message",defaultValue = "random facts") String message){
-       if(contextId.isEmpty()){
-           contextId= UUID.randomUUID().toString();
-       }
-       String prompt=contextService.preparePromptWithContextHistory(contextId,message);
-       return Map.of("Generated",chatClient.call(prompt));
+//    @GetMapping(value = "/chat", params = "contextId")
+//    public Map<String,String> chat(@RequestParam(value = "contextId",defaultValue = "") String contextId,
+//                                   @RequestParam(value = "message",defaultValue = "random facts") String message){
+//       if(contextId.isEmpty()){
+//           contextId= UUID.randomUUID().toString();
+//       }
+//       String prompt=contextService.preparePromptWithContextHistory(contextId,message);
+//       return Map.of("Generated",chatClient.call(prompt));
+//    }
+@GetMapping(value = "/chat", params = "contextId")
+public Map<String,String> chat(@RequestParam(value = "contextId",defaultValue = "") String contextId,
+                               @RequestParam(value = "message",defaultValue = "random facts") String message){
+    if(contextId.isEmpty()){
+        contextId= UUID.randomUUID().toString();
     }
+    try {
+        String prompt = contextService.preparePromptWithContextHistory(contextId, message);
+        String botReply = chatClient.call(prompt);
+        Map<String, String> result = new HashMap<>();
+        result.put("contextId", contextId);
+        result.put("reply", botReply);
+        return result;
+    } catch (Exception e) {
+        Map<String, String> errorResult = new HashMap<>();
+        errorResult.put("contextId", contextId);
+        errorResult.put("reply", "Sorry, something went wrong processing your request.");
+        return errorResult;
+    }
+
+
+}
 }
